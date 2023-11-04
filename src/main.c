@@ -26,6 +26,21 @@ do{ \
 DuLinkList cli_list_head;
 DuLNode *cli_list_tail;
 
+int copy_iplist(char *buf,int *bytecount)
+{
+	return copy_list_from_head(cli_list_head,buf,bytecount);
+}
+
+int get_node_by_fd(int fd,DuLNode **node)
+{
+	return get_by_value(cli_list_head,&cli_list_tail, fd,node);
+}
+
+void signal_handler(int signum)
+{
+	dbgOut("signal: %d\n", signum);
+}
+
 //处理客户端接受的数据的线程函数
 void *handler_cli_msg(void *arg){
 	cli_info *info = (cli_info *)arg;
@@ -34,9 +49,9 @@ void *handler_cli_msg(void *arg){
 	char password[10];
 	//线程分离
 	pthread_detach(pthread_self());
-	dbgOut("rec :%s\n",info->buf);
-	//转发给其他客户端
-
+	//dbgOut("rec :%s\n",info->buf);
+	//处理命令
+	cmd_get(info->buf,info->len,info->fd);
 	free(info->buf);
 	free(info);
 	pthread_exit(NULL);
@@ -107,7 +122,7 @@ int main(int argc, char *argv[])
 	cli_list_head = list_init();
 	cli_list_tail = NULL;
 	//注册一个SIGPIPE信号处理函数
-	//signal(SIGPIPE, signal_handler);
+	signal(SIGPIPE, signal_handler);
 
 	int server_fd = make_tcpserver();
 	int cli_fd; //表示连接到服务端的客户端的文件描述符
@@ -180,7 +195,7 @@ int main(int argc, char *argv[])
 						while (1)
 						{
 							n = recv(evs[i].data.fd, info->buf + m, MSG_LEN-1, MSG_DONTWAIT);
-							dbgOut("n: %d\n", n);
+							//dbgOut("n: %d\n", n);
 							if (n < 0 && errno == EAGAIN)
 							{
 								break;
@@ -204,6 +219,7 @@ int main(int argc, char *argv[])
 						}
 						//dbgOut("%d recv: %s\n", evs[i].data.fd, buf);
 						//free(buf);
+						info->len = n;
 						pthread_t tid;
 						pthread_create(&tid,NULL,handler_cli_msg,(void *)info);
 					}

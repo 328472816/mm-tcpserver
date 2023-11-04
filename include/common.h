@@ -18,7 +18,7 @@
 
 #define TRUE 0
 #define FALSE -1
-#define MSG_LEN 1024
+#define MSG_LEN 9024
 
 typedef unsigned int uint;
 
@@ -27,6 +27,7 @@ typedef int ElemType;
 typedef struct cli_info
 {
 	char *buf;
+	int len;
 	int fd;
 }cli_info;
 //描述双向链表上的一个结点的结构体
@@ -42,7 +43,11 @@ DuLNode *list_init();
 int tail_insert(DuLinkList head, DuLNode **pTail, int cli_fd,struct sockaddr_in cli_addr);
 void print_list_from_head(DuLinkList head);
 void print_list_from_tail(DuLNode *tail);
+int get_by_value(DuLinkList head, DuLNode **pTail, int cli_fd,DuLNode **node);
+int copy_list_from_head(DuLinkList head,char *buf,int *bytecount);
+int copy_iplist(char *buf,int *bytecount);
 
+int get_node_by_fd(int fd,DuLNode **node);
 
 #define dbgOut(arg...) \
 do{ \

@@ -1,6 +1,40 @@
 #include "common.h"
 
 
+//从头结点开始拷贝 返回值为16len
+//rc  03 04 16len 8lenfd+ip 8lenfd+ip ... crc
+int copy_list_from_head(DuLinkList head,char *buf,int *bytecount)
+{
+    char ip[50] = {0};
+    int len16 = 0;
+    *bytecount = 0;
+    unsigned char len8 = 0;
+    if (NULL == head)
+        return -1;
+    char *pbuf = buf;
+    DuLNode *t = head->next;
+    printf("copy list \n");
+    while (t != NULL)
+    {
+        memset(ip,0,50);
+        sprintf(ip,"%s",inet_ntoa(t->cli_addr.sin_addr));
+        len8=1+strlen(ip);
+        len16++;
+        *bytecount += (len8+1);
+        *pbuf = len8;
+        pbuf++;
+        *pbuf = t->cli_fd;
+        pbuf++;
+        memcpy(pbuf,ip,strlen(ip));
+        pbuf+=strlen(ip);
+        //printf("cli_fd:%d ", t->cli_fd);
+        //printf("cli_addr:%s ", inet_ntoa(t->cli_addr.sin_addr));
+        //printf("cli_port:%d ", ntohs(t->cli_addr.sin_port));
+        t = t->next;
+    }
+    //printf("\n");
+    return len16;
+}
 
 //从头结点开始打印
 void print_list_from_head(DuLinkList head)
@@ -303,6 +337,67 @@ int delete_by_index(DuLinkList head, DuLNode **pTail, uint index)
     //t的后继结点的前驱结点指针指向t的前驱结点
     t->next->pre = t->pre;
     free(t);
+
+    return TRUE;
+}
+
+int getby_index(DuLinkList head, DuLNode **pTail, uint index,DuLNode **node)
+{
+    if (NULL == head)
+    {
+        printf("[%s %d] head point is NULL\n", __FUNCTION__ , __LINE__);
+        return FALSE;
+    }
+
+    if (0 == index)
+    {
+        printf("[%s %d] index must > 0\n", __FUNCTION__ , __LINE__);
+        return FALSE;
+    }
+
+    int i = 1;
+    DuLNode *t = head->next;
+    while (i < index && t != NULL)
+    {
+        i++;
+        t = t->next;
+    }
+
+    //如果整个链表都遍历完了依然没有找到对应的位置，说明这个结点位置超出了链表的长度
+    if (NULL == t)
+    {
+        printf("[%s %d] index out of range ..\n", __FUNCTION__ , __LINE__);
+        return FALSE;
+    }
+
+    *node = t;
+    return TRUE;
+}
+
+int get_by_value(DuLinkList head, DuLNode **pTail, int cli_fd,DuLNode **node)
+{
+    if (NULL == head || NULL == head->next)
+    {
+        printf("[%s %d] head point is NULL\n", __FUNCTION__ , __LINE__);
+        return FALSE;
+    }
+
+    DuLNode *t = head->next;
+    while (t != NULL)
+    {
+        if (t->cli_fd != cli_fd)
+        {
+            t= t->next;
+            continue;
+        }
+        //判断需要删除的结点是否恰好是尾结点
+        if (t->next == NULL)
+        {
+            *node = t;
+            break;
+        }
+        *node = t;
+    }
 
     return TRUE;
 }
