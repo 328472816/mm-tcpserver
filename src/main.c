@@ -192,6 +192,7 @@ int main(int argc, char *argv[])
 						//int n = read(evs[i].data.fd, buf, sizeof(buf)-1);
 						int n = 0;
 						int m = 0;
+						int rclen = 0;
 						while (1)
 						{
 							n = recv(evs[i].data.fd, info->buf + m, MSG_LEN-1, MSG_DONTWAIT);
@@ -203,6 +204,7 @@ int main(int argc, char *argv[])
 							else if (n > 0)
 							{
 								m += n;
+								rclen+=n;
 								continue;
 							}	
 							else if (n == 0)
@@ -219,7 +221,7 @@ int main(int argc, char *argv[])
 						}
 						//dbgOut("%d recv: %s\n", evs[i].data.fd, buf);
 						//free(buf);
-						info->len = n;
+						info->len = rclen;
 						pthread_t tid;
 						pthread_create(&tid,NULL,handler_cli_msg,(void *)info);
 					}

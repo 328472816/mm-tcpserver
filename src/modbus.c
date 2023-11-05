@@ -58,11 +58,30 @@ unsigned char sum_crc(char *buf,int len)
 int crc_check(char *buf,int len)
 {
     unsigned char sum = sum_crc(buf,len-1);
-    if(sum == buf[len - 1])
+    if(sum == (unsigned char)buf[len - 1])
         return 1;
+    printf("crc len %d sum %d not %d\n",len,sum,buf[len - 1]);
     return 0;
 }
 
+
+int cmdErrsend(int fd,int err)
+{
+//错误 
+// 01 00 cmd crc
+/*cmd
+00 无响应
+01 fd不存在
+*/
+    char cmd[4] = {0};
+    int index = 0;
+    cmd[index] = 0x01; index++;
+    cmd[index] = 0x00; index++;
+    cmd[index] = err; index++;
+    cmd[index] = sum_crc(cmd,index);index++;
+    write(fd, cmd, index);
+    return 1;
+}
 
 int cmd02send(int fd)
 {
@@ -72,7 +91,7 @@ int cmd02send(int fd)
     cmd[index] = 0x03; index++;
     cmd[index] = 0x02; index++;
     cmd[index] = fd; index++;
-    cmd[index] = sum_crc(cmd,index-1);
+    cmd[index] = sum_crc(cmd,index);index++;
     write(fd, cmd, index);
     return 1;
 }
@@ -184,22 +203,35 @@ int cmd04(char* cmd, int len,int fd)
 
 int cmd05(char* cmd, int len,int fd)
 {
-    char ipbuf[300] = {0};
-    int  bytecount;
-    //rc  03 04 16len 8lenfd+ip 8lenfd+ip ... crc
-    if(cmd[0]!=0x03|| cmd[1] != 0x04 || fd != reg_list[0])
-        return 0;
-    printf("04 cmd get fd %d\n",fd);
-    //获取当前fd的ip地址
+    // fd 05 crc   //rc  fd 05 16len 8len+type+name ...  crc 转发
     DuLNode *node;
-    int len16 = copy_iplist(ipbuf,&bytecount);
-    if(len16 > 0)
+    if(fd == reg_list[0])
     {
-        cmd04send(fd,ipbuf,len16,bytecount);
+        //转发目标
+        printf("cmd get fd %d send obj %d len %d\n",fd,cmd[0],len);  
+        int res = get_node_by_fd(cmd[0],&node);
+        if(TRUE == res)
+        {
+            write(cmd[0], cmd, len);
+         }else
+         {
+            printf("not pc %d\n",cmd[0]);
+            cmdErrsend(fd,1);
+         }
     }
     else
     {
-        printf("04 cmd not list\n");
+        //转发主机
+        printf("cmd get fd %d send host %d\n",fd,reg_list[0]);
+        int res = get_node_by_fd(reg_list[0],&node);
+        if(TRUE == res)
+        {
+            write(reg_list[0], cmd, len);
+         }else
+         {
+            printf("not pc %d\n",reg_list[0]);
+            cmdErrsend(fd,1);
+         }
     }
     return 1;
 }
@@ -223,6 +255,15 @@ int cmd_get(char *buf,int len,int fd)
             break;
         case 4:
             cmd04(buf,len,fd);
+            break;
+        case 5:
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+        case 10:
+        case 11:
+            cmd05(buf,len,fd);
             break;
     }
 

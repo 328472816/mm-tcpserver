@@ -394,12 +394,13 @@ int get_by_value(DuLinkList head, DuLNode **pTail, int cli_fd,DuLNode **node)
         if (t->next == NULL)
         {
             *node = t;
-            break;
+            return TRUE;
         }
         *node = t;
+        return TRUE;
     }
 
-    return TRUE;
+    return FALSE;
 }
 
 /*
