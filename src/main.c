@@ -74,7 +74,7 @@ int make_tcpserver()
 	//设置端口号
 	in.sin_port = htons(8080);
 	//设置IP地址
-	in.sin_addr.s_addr = inet_addr("47.89.192.204");
+	in.sin_addr.s_addr = inet_addr("0.0.0.0");
 	
 	int ret;
 	ret = bind(server_fd, (struct sockaddr *)&in, sizeof(struct sockaddr));
